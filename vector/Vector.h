@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+using std::make_unique;
+
 template <typename T> class Vector {
 
 public:
@@ -12,51 +14,81 @@ public:
     
     /**
      * WHAT: default constructor
-     * NOTE: capacity will be initialized to 4 by default.
+     * NOTE: _capacity will be initialized to 4 by default.
     **/
-    Vector() : capacity(4), size(0) {
-        data = std::make_unique<T[]>(4);
-    }
+    Vector() : _capacity(4), _size(0), _data(make_unique<T[]>(4)) {}
 
     /**
      * WHAT: reserve constructor
      * NOTE: _capacity * sizeof(T) bytes will be allocated (tight memory mgmt)
     **/
-    Vector(size_t _capacity) : capacity(_capacity), size(0) {
-        data = std::make_unique<T[]>(capacity);
-    }
+    Vector(size_t _capacity): _capacity(_capacity), 
+                              _size(0),
+                              _data(make_unique<T[]>(_capacity)) {}
 
     /**
      * WHAT: reserve + initialize constructor
      * NOTE: _capacity * sizeof(T) bytes will be allocated and initialized
     **/
-    Vector(size_t _capacity, const T& init) : capacity(_capacity), size(_capacity) {
-        data = std::make_unique<T[]>(capacity);
-        for (size_t i = 0; i < size; ++i) {
-            data[i] = init;
+    Vector(size_t _capacity, const T& init): _capacity(_capacity),
+                                             _size(_capacity),
+                                             _data(make_unique<T[]>(_capacity))
+    {
+        for (size_t i = 0; i < _size; ++i) {
+            _data[i] = init;
         }
     };
 
     /**
      * WHAT: copy constructor
     **/
-    Vector(const Vector<T>& other) : capacity(other.capacity), size(other.size) {
-        data = std::make_unique<T[]>(*(other.data.get()));
-    };
+    Vector(const Vector<T>& other): _capacity(other._capacity),
+                                    _size(other._size),
+                                    _data(
+                                        make_unique<T[]>(*(other._data.get()))
+                                    )
+    {}
+
+    /**
+     * WHAT: move constructor
+    **/
+    Vector(Vector<T> && other): _capacity(other._capacity), 
+                                _size(other._size),
+                                _data(std::move(other._data)) 
+    {
+        other._size = 0;
+        other._capacity = 0;
+    }
+
+    Vector(std::initializer_list<T> init): _capacity(init.size()), 
+                                           _size(init.size()),
+                                           _data(make_unique<T[]>(_capacity))
+    {
+        int idx = 0;
+        for (auto itr = init.begin(); itr != init.end(); ++itr) {
+            _data[idx++] = *itr;
+        }
+    } 
 
     /**************************************************************************
      *************************   END: CONSTRUCTORS   *************************
     **************************************************************************/
 
     T& operator[] (size_t index) {
-        if (index < 0 || index >= size)
+        if (index < 0 || index >= _size)
             throw std::out_of_range("\n\t out of bounds access: index " + std::to_string(index));
         
-        return data[index];
+        return _data[index];
     }
 
+    size_t size() { return _size; }
+
+    size_t capacity() { return _capacity; }
+
+    bool empty() { return _size == 0; }
+
 private:
-    size_t capacity;
-    size_t size;
-    std::unique_ptr<T[]> data;
+    size_t _capacity;
+    size_t _size;
+    std::unique_ptr<T[]> _data;
 };
